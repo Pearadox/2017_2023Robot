@@ -4,7 +4,13 @@
 
 package frc.robot;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.motorcontrol.Spark;
+import edu.wpi.first.wpilibj.motorcontrol.VictorSP;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -19,6 +25,16 @@ public class Robot extends TimedRobot {
   private static final String kCustomAuto = "My Auto";
   private String m_autoSelected;
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
+  VictorSP motor0 = new VictorSP(0);
+  VictorSP motor1 = new VictorSP(1);
+  VictorSP motor2 = new VictorSP(2);
+  VictorSP motor3 = new VictorSP(3);
+  TalonSRX shooter = new TalonSRX(3);
+  TalonSRX geararm = new TalonSRX(2);
+  //Spark gearwheels;
+
+  Joystick JS = new Joystick(0);
+  
 
   /**
    * This function is run when the robot is first started up and should be used for any
@@ -78,7 +94,50 @@ public class Robot extends TimedRobot {
 
   /** This function is called periodically during operator control. */
   @Override
-  public void teleopPeriodic() {}
+  public void teleopPeriodic() {
+
+    motor0.setInverted(false);
+    motor1.setInverted(false);
+    motor2.setInverted(true);
+    motor3.setInverted(true);
+
+    double speed = JS.getRawAxis(3);
+    double throttle = -JS.getRawAxis(1);
+    double twist = JS.getRawAxis(2);
+    double strafe = JS.getRawAxis(0);
+    boolean traction = JS.getRawButton(1);
+		boolean raise = JS.getRawButton(7);
+		boolean lower = JS.getRawButton(8);
+		boolean intake = JS.getRawButton(11);
+		boolean outtake = JS.getRawButton(12);
+		boolean shoot = JS.getRawButton(3);
+		
+    motor0.set(twist + throttle - strafe);
+    motor1.set(twist + throttle + strafe);
+    motor2.set(-twist + throttle + strafe);
+    motor3.set(-twist + throttle - strafe);
+
+    if (shoot)
+      shooter.set(ControlMode.PercentOutput, .8);
+    else
+      shooter.set(ControlMode.PercentOutput, 0);
+
+    // if (intake) 
+    //   gearwheels.set(-1);
+    // else if (outtake)
+    //   gearwheels.set(.5);
+    // else
+    //   gearwheels.set(0);  
+
+    if (raise) 
+      geararm.set(ControlMode.PercentOutput, -.8);
+    else if (lower)
+      geararm.set(ControlMode.PercentOutput, .7);
+    else
+      geararm.set(ControlMode.PercentOutput, 0);
+
+  }
+
 
   /** This function is called once when the robot is disabled. */
   @Override
