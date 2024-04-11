@@ -118,7 +118,7 @@ public class Robot extends TimedRobot {
     motor3.set(-twist + throttle - strafe);
 
     if (shoot)
-      shooter.set(ControlMode.PercentOutput, .8);
+      shooter.set(ControlMode.PercentOutput, .8515);
     else
       shooter.set(ControlMode.PercentOutput, 0);
 
