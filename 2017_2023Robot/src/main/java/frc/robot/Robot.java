@@ -8,7 +8,9 @@ import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
 import edu.wpi.first.wpilibj.motorcontrol.VictorSP;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -31,10 +33,15 @@ public class Robot extends TimedRobot {
   VictorSP motor3 = new VictorSP(3);
   TalonSRX shooter = new TalonSRX(3);
   TalonSRX geararm = new TalonSRX(2);
-  //Spark gearwheels;
+  // Spark gearwheels; // pneumatics?
+
+  Servo shooterStopper = new Servo(5);
+  Timer timer = new Timer();
 
   Joystick JS = new Joystick(0);
-  
+
+  final double deadband = 0.1; 
+  final double twistDeadband = 0.3; 
 
   /**
    * This function is run when the robot is first started up and should be used for any
@@ -101,31 +108,58 @@ public class Robot extends TimedRobot {
     motor2.setInverted(true);
     motor3.setInverted(true);
 
-    double speed = JS.getRawAxis(3);
-    double throttle = -JS.getRawAxis(1);
-    double twist = JS.getRawAxis(2);
-    double strafe = JS.getRawAxis(0);
+    // double shooterSpeed = JS.getRawAxis(3); // slider at the bottom
+    double throttle = -JS.getRawAxis(1); // y axis/forward
+    double twist = JS.getRawAxis(2); // rotation, if you twist the joystick
+    double strafe = JS.getRawAxis(0); // x axis/side to side
+
     boolean traction = JS.getRawButton(1);
 		boolean raise = JS.getRawButton(7);
 		boolean lower = JS.getRawButton(8);
-		boolean intake = JS.getRawButton(11);
-		boolean outtake = JS.getRawButton(12);
+		// boolean intake = JS.getRawButton(11);
+		// boolean outtake = JS.getRawButton(12);
 		boolean shoot = JS.getRawButton(3);
+
+    if (Math.abs(throttle) < deadband) {
+      throttle = 0;
+    }
+    if (Math.abs(twist) < twistDeadband) {
+      twist = 0;
+    }
+    if (Math.abs(strafe) < deadband) {
+      strafe = 0;
+    }
 		
     motor0.set(twist + throttle - strafe);
     motor1.set(twist + throttle + strafe);
     motor2.set(-twist + throttle + strafe);
     motor3.set(-twist + throttle - strafe);
 
-    if (shoot)
-      shooter.set(ControlMode.PercentOutput, .8515);
-    else
-      shooter.set(ControlMode.PercentOutput, 0);
+    // restart timer when shoot button first pressed
+    if (JS.getRawButtonPressed(3)) {
+      timer.restart();
+    }
 
-    // if (intake) 
+    if (shoot) {
+      // shoots like 3 feet high, change to line below if needed
+      shooter.set(ControlMode.PercentOutput, 0.6); 
+      // shooter.set(ControlMode.PercentOutput, (shooterSpeed / 2.0 + 0.5));
+
+      shooterStopper.set(timer.get() > 1 ? 1 : 0.5); 
+      // unblocks fuel after allowing wheel to spin for 1s
+    } else {
+      shooter.set(ControlMode.PercentOutput, 0);
+      shooterStopper.set(0.5); // blocks fuel from reaching shooter
+
+      timer.reset();
+      timer.stop();
+    }
+      
+    // pneumatics?
+    // if (intake)
     //   gearwheels.set(-1);
-    // else if (outtake)
-    //   gearwheels.set(.5);
+    // if (outtake)
+    //   gearwheels.set(0.5);
     // else
     //   gearwheels.set(0);  
 
