@@ -40,9 +40,12 @@ public class Robot extends TimedRobot {
 
   Joystick JS = new Joystick(0);
 
-  final double deadband = 0.1; 
-  final double twistDeadband = 0.3; 
+  final double DEADBAND = 0.1; // accounts for joystick drift
+  final double TWIST_DEADBAND = 0.35; // the joystick has a lot of twist drift
 
+  final double STOPPER_OPEN_POS = 1.0; // servo opens, allowing fuel to travel to shooter
+  final double STOPPER_CLOSED_POS = 0.5; // servo closes, keeping fuel behind the shooter
+  final double SHOOTER_DEMO_SPEED = 0.5414; // shoots like 3ft high
   /**
    * This function is run when the robot is first started up and should be used for any
    * initialization code.
@@ -108,7 +111,7 @@ public class Robot extends TimedRobot {
     motor2.setInverted(true);
     motor3.setInverted(true);
 
-    // double shooterSpeed = JS.getRawAxis(3); // slider at the bottom
+    // double shooterSpeed = JS.getRawAxis(3); // slider at the bottom (black flip switch)
     double throttle = -JS.getRawAxis(1); // y axis/forward
     double twist = JS.getRawAxis(2); // rotation, if you twist the joystick
     double strafe = JS.getRawAxis(0); // x axis/side to side
@@ -120,35 +123,46 @@ public class Robot extends TimedRobot {
 		// boolean outtake = JS.getRawButton(12);
 		boolean shoot = JS.getRawButton(3);
 
-    if (Math.abs(throttle) < deadband) {
+    if (Math.abs(throttle) < DEADBAND) {
       throttle = 0;
     }
-    if (Math.abs(twist) < twistDeadband) {
+    if (Math.abs(twist) < TWIST_DEADBAND) {
       twist = 0;
     }
-    if (Math.abs(strafe) < deadband) {
+    if (Math.abs(strafe) < DEADBAND) {
       strafe = 0;
     }
 		
-    motor0.set(twist + throttle - strafe);
-    motor1.set(twist + throttle + strafe);
-    motor2.set(-twist + throttle + strafe);
-    motor3.set(-twist + throttle - strafe);
+    // motor0.set(twist + throttle - strafe);
+    // motor1.set(twist + throttle + strafe);
+    // motor2.set(-twist + throttle + strafe);
+    // motor3.set(-twist + throttle - strafe);
+    motor0.set(twist - throttle);
+    motor1.set(twist - throttle);
+    motor2.set(-twist - throttle);
+    motor3.set(-twist - throttle);
 
-    // restart timer when shoot button first pressed
+    // restarts timer when you start pressing the shoot button
     if (JS.getRawButtonPressed(3)) {
       timer.restart();
     }
 
+    boolean useConstantDemoSpeed = true; // make false to vary shooter speed based on the joystick slider
     if (shoot) {
-      // shoots like 3 feet high, change to line below if needed
-      shooter.set(ControlMode.PercentOutput, 0.6); 
-      // shooter.set(ControlMode.PercentOutput, (shooterSpeed / 2.0 + 0.5));
+      double shooterSpeed;
+      if (useConstantDemoSpeed) {        
+        shooterSpeed = SHOOTER_DEMO_SPEED; // shoots like 3 feet high
+      } else {
+        // this will change the shooter speed based on the slider at the bottom (black flip switch)
+        // (the slider value goes from -1 to 1, so 0.5x + 0.5 makes it go from 0 to 1 instead)
+        shooterSpeed = (JS.getRawAxis(3) * 0.5 + 0.5);
+      }
+      shooter.set(ControlMode.PercentOutput, shooterSpeed);
 
-      shooterStopper.set(timer.get() > 1 ? 1 : 0.5); 
-      // unblocks fuel after allowing wheel to spin for 1s
+      // unblocks the fuel after the shooter has spun for 1s and built up enough speed
+      shooterStopper.set(timer.get() > 1.0 ? STOPPER_OPEN_POS : STOPPER_CLOSED_POS);
     } else {
-      shooter.set(ControlMode.PercentOutput, 0);
+      shooter.set(ControlMode.PercentOutput, 0.0); // stops shooter
       shooterStopper.set(0.5); // blocks fuel from reaching shooter
 
       timer.reset();
